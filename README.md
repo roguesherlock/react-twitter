@@ -1,5 +1,11 @@
-I found myself doing this repeatedly so decided to create a base template which I can just mirror.
+A stupid simple Twitter on React/TypeScript/Tailwind Stack
 
-- React
-- Typescript
-- TailwindCSS
+# To run on localhost
+
+`git clone git@github.com:roguesherlock/react-twitter.git`
+
+`cd react-twitter`
+
+`yarn install`
+
+`yarn start`

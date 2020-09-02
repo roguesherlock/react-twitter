@@ -1,5 +1,6 @@
 import React from "react";
 import { TweetType } from "../hooks/useTwitter";
+import { TwitterTweetEmbed } from "react-twitter-embed";
 
 type TweetCardProps = {
   tweet: TweetType | null;
@@ -23,9 +24,9 @@ export default function TweetCard({ tweet }: TweetCardProps) {
   return (
     <div
       className="box-content shadow-lg border px-4 py-2 max-w-sm mx-auto border-gray-900 border-b-4 border-r-4 rounded-md"
-      style={{ height: "80vh", width: "75vw" }}
+      style={{ height: "60vh", width: "70vw" }}
     >
-      {tweet && <p>{tweet.tweet}</p>}
+      {tweet && <TwitterTweetEmbed tweetId={tweet.id} />}
       {!tweet && <EmptyTweet />}
     </div>
   );

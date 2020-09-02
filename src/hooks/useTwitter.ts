@@ -1,4 +1,6 @@
-import { useReducer, useRef, useCallback } from "react";
+import { useReducer, useCallback, useEffect } from "react";
+
+import io from "socket.io-client";
 
 export type TweetType = {
   tweet: string;
@@ -14,7 +16,7 @@ type twitterReducerStateType = {
 
 type twitterReducerActionTypes = {
   type: string;
-  value?: string | TweetType;
+  value?: string | TweetType | Record<string, unknown>[];
 };
 
 const twitterReducer = (
@@ -22,56 +24,60 @@ const twitterReducer = (
   action: twitterReducerActionTypes
 ) => {
   switch (action.type) {
+    case "add": {
+      const tweets = state.tweets;
+      return { ...state, tweets: [...tweets, action.value! as TweetType] };
+    }
     default: {
       return state;
     }
   }
 };
 
-const initTwitterReducer = (_: any) => {
-  return {
-    tweets: [],
-    currentTweet: null,
-  };
+const initialTweetReducerState = {
+  tweets: [],
+  currentTweet: null,
+};
+
+const getSocketUrl = () => {
+  if (process.env.NODE_ENV !== "production") {
+    return "http://localhost:3001/";
+  } else {
+    return "/";
+  }
 };
 
 export default function useTwitter() {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [state, dispatch] = useReducer(
     twitterReducer,
-    null,
-    initTwitterReducer
+    initialTweetReducerState
   );
 
-  const onNext = () => {
-    dispatch({ type: "next" });
-  };
-  const onPrev = () => {
-    dispatch({ type: "prev" });
-  };
-  const onComment = (tweet: TweetType) => {
-    dispatch({ type: "comment", value: tweet });
-  };
-  const onLike = (tweet: TweetType) => dispatch({ type: "like", value: tweet });
-  const bindInput = {
-    ref: inputRef,
-    onKeyPress: useCallback(
-      (event: any) => {
-        if (event.key === "Enter") {
-          dispatch({ type: "stream", value: inputRef?.current?.value });
-          inputRef!.current!.value = "";
-          inputRef?.current?.focus();
-        }
-      },
-      [dispatch]
-    ),
-  };
+  const streamTweets = useCallback(() => {
+    const socket = io(getSocketUrl());
+
+    socket.on("connect", () => {});
+    socket.on("tweet", (response: Record<string, unknown>) => {
+      if (response.data) {
+        dispatch({ type: "add", value: response.data as TweetType });
+      }
+    });
+    socket.on("heartbeat", (data: any) => {
+      console.log("update waiting...");
+    });
+    socket.on("error", (data: Record<string, unknown>) => {
+      dispatch({ type: "errors", value: [data] });
+    });
+    socket.on("authError", (data: Record<string, unknown>) => {
+      dispatch({ type: "errors", value: [data] });
+    });
+  }, []);
+
+  useEffect(() => {
+    streamTweets();
+  }, [streamTweets]);
+
   return {
-    onNext,
-    onComment,
-    onPrev,
-    onLike,
-    tweet: state.currentTweet,
-    bindInput,
+    tweets: state.tweets,
   } as const;
 }
